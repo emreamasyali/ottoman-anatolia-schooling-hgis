@@ -44,12 +44,18 @@ const POINT_STYLES = {
 
 // ── State ────────────────────────────────────────────────────────────────────
 
-// Ottoman 1899 historical map overlay config
-const OTTOMAN_OVERLAY = {
-  url: 'img/ottoman_1899_overlay.jpg',
-  bounds: [[29.3468, 23.4149], [42.9966, 48.1760]],  // [[S,W],[N,E]] WGS84
-  opacity: 0.6,
-};
+// Ottoman 1899 historical map overlay config (two sheets)
+const OTTOMAN_OVERLAYS = [
+  {
+    url: 'img/ottoman_1899_overlay.jpg',
+    bounds: [[29.3468, 23.4149], [42.9966, 48.1760]],  // Anatolia sheet
+  },
+  {
+    url: 'img/ottoman_eur_overlay.jpg',
+    bounds: [[38.6734, 18.7761], [43.9206, 28.9370]],  // European Turkey / Balkans sheet
+  },
+];
+const OTTOMAN_OPACITY = 0.6;
 
 const state = {
   map: null,
@@ -361,11 +367,11 @@ async function main() {
     return;
   }
 
-  // Historical map overlay — added below base tiles, above nothing yet
-  state.leafletLayers.ottoman1899 = L.imageOverlay(
-    OTTOMAN_OVERLAY.url,
-    OTTOMAN_OVERLAY.bounds,
-    { opacity: OTTOMAN_OVERLAY.opacity, interactive: false }
+  // Historical map overlays (two sheets: Anatolia + European Turkey)
+  state.leafletLayers.ottoman1899 = L.layerGroup(
+    OTTOMAN_OVERLAYS.map(o =>
+      L.imageOverlay(o.url, o.bounds, { opacity: OTTOMAN_OPACITY, interactive: false })
+    )
   );
 
   // Build and register layers (order matters for z-stacking)
