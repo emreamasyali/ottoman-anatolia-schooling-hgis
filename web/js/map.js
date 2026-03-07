@@ -44,6 +44,13 @@ const POINT_STYLES = {
 
 // ── State ────────────────────────────────────────────────────────────────────
 
+// Ottoman 1899 historical map overlay config
+const OTTOMAN_OVERLAY = {
+  url: 'img/ottoman_1899_overlay.jpg',
+  bounds: [[29.3468, 23.4149], [42.9966, 48.1760]],  // [[S,W],[N,E]] WGS84
+  opacity: 0.6,
+};
+
 const state = {
   map: null,
   leafletLayers: {},   // key → Leaflet layer object
@@ -51,6 +58,7 @@ const state = {
   visible: {
     kazas: true, locations: true, mainStations: true,
     armenian: true, christian: false, commercial: true,
+    ottoman1899: false,
   },
 };
 
@@ -352,6 +360,13 @@ async function main() {
     console.error('Fatal fetch error:', err);
     return;
   }
+
+  // Historical map overlay — added below base tiles, above nothing yet
+  state.leafletLayers.ottoman1899 = L.imageOverlay(
+    OTTOMAN_OVERLAY.url,
+    OTTOMAN_OVERLAY.bounds,
+    { opacity: OTTOMAN_OVERLAY.opacity, interactive: false }
+  );
 
   // Build and register layers (order matters for z-stacking)
   if (data.kazas) {
