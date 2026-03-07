@@ -52,11 +52,6 @@ categories of information:
   yearbooks (*Maarif Salnamesi*) for two cross-sections: 1876 (male
   rüşdiye only) and 1902–08 (male and female ibtidai and rüşdiye).
 
-The dataset also includes a **competition measure** — the count of Protestant
-and Armenian schools located within a 5-kilometre radius of one another in a
-given kaza, normalised by the Armenian population of that district — which
-serves as a localised proxy for inter-communal educational rivalry.
-
 Key data components:
 
 | Component | Records | Period | Format |
@@ -64,7 +59,6 @@ Key data components:
 | Kaza boundary polygons | 332 kazas | c. 1899–1914 | Shapefile, GeoJSON |
 | Missionary stations & outstations | 420 locations | 1870–1914 | Shapefile, GeoJSON |
 | Main ABCFM stations | 10 locations | c. 1900 | Shapefile, GeoJSON |
-| Commercial centers | 4 locations | c. 1890 | Shapefile, GeoJSON |
 | 1881/93 census demographics | 335 kazas | 1881/82–1893 | Stata, CSV |
 | Ottoman school census | 1,000 kaza-years | 1876, 1902–08 | Stata, CSV |
 
@@ -162,23 +156,15 @@ Station coordinates were geocoded from:
 - The private library and archive of the Amerikan Bord Heyeti at the
   American Research Institute in Turkey (ARIT), Beylerbeyi, Istanbul.
 - Data on Protestant missionary schools drawn from Alan (2015).
-- Smith, Eli and Harrison Gray Otis Dwight. *Missionary Researches in
-  Armenia* (1833) — for the 1834 reconnaissance journey, encoded as an
-  instrumental-variable shapefile
-  (`Instrumental Variables/Smith&DwightJourney_1834.shp`).
 
 Each location record includes the station name, Ottoman administrative
 hierarchy (vilayet / sanjak / kaza), modern place name, mission name,
 and classification (main station vs. outstation vs. dependent congregation).
 
-**Field `Out-Statio` = 1** indicates an outstation (a secondary location
+**Field `Out-Station` = 1** indicates an outstation (a secondary location
 served from a main station but without a resident missionary).
-**Field `Main Stati` = 1** indicates a principal station with a resident
+**Field `Main Station` = 1** indicates a principal station with a resident
 missionary household.
-
-**Instrumental variable.** The 1834 Smith & Dwight reconnaissance journey
-is encoded as a separate shapefile and used as an instrumental variable for
-the later placement of ABCFM stations.
 
 ### 1881/93 Ottoman census (*Nüfus-i Umumi*)
 
@@ -238,17 +224,7 @@ school census provides two cross-sections (1876 and 1902–08), enabling
 before-and-after comparisons of state schooling expansion. No attempt has
 been made to model boundary changes between censuses; the 1881/93 and 1914
 administrative geographies are treated as equivalent for the purpose of
-analysis. Contemporary outcome variables (educational attainment, GPI,
-nighttime luminosity) are linked to the historical kaza boundaries via
-spatial joins to modern Turkish district (*ilçe*) boundaries.
-
-### Competition measure
-
-The competition variable counts the number of Protestant missionary
-schools and Gregorian Armenian schools located within a **5-kilometre
-radius** of one another in a given kaza, normalised by the Armenian
-population of that district. The variable is constructed using proximity
-analysis tools in ArcGIS.
+analysis.
 
 ### Incomplete vilayet coverage
 
@@ -261,28 +237,6 @@ or absent:
 - **Kars** — included as a special administrative zone but excluded from
   the main analytical sample as it was under Russian jurisdiction
   (1878–1918) during the relevant period.
-
-### Simplification
-
-Kaza boundary polygons exported to GeoJSON are simplified using a tolerance
-of 0.0001 degrees (roughly 10 m at the equator) via Shapely's
-`simplify(preserve_topology=True)`. This reduces file sizes by ~30% without
-affecting visual accuracy at typical web-map zoom levels (z6–z10). The
-original unsimplified shapefiles are preserved in `data/raw/`.
-
-### Encoding
-
-All CSV exports use **UTF-8 with BOM** (`utf-8-sig`) to ensure correct
-display of Ottoman place names in Excel without manual encoding selection.
-The Stata files use Stata's internal string encoding; variable labels and
-value labels are preserved in the `.dta` format but stripped in the CSV
-export.
-
-### Raw vs. derived data
-
-Files in `data/raw/` are never modified by the conversion pipeline. They
-serve as archival copies for download. Files in `data/derived/` are
-fully reproducible by running `scripts/convert_data.py`.
 
 ---
 
@@ -352,7 +306,6 @@ All data files are available directly from this repository.
 | Kaza boundaries (WGS-84) | [`data/derived/geojson/kazas_boundaries.geojson`](data/derived/geojson/kazas_boundaries.geojson) | 332 polygons |
 | Missionary stations | [`data/derived/geojson/missionary_stations.geojson`](data/derived/geojson/missionary_stations.geojson) | 420 points |
 | Main missionary stations | [`data/derived/geojson/main_missionary_stations.geojson`](data/derived/geojson/main_missionary_stations.geojson) | 10 points |
-| Commercial centers | [`data/derived/geojson/commercial_centers.geojson`](data/derived/geojson/commercial_centers.geojson) | 4 points |
 
 ### CSV (tabular data)
 
@@ -377,7 +330,6 @@ All data files are available directly from this repository.
 | Kaza boundaries | [`data/raw/shapefiles/boundaries/`](data/raw/shapefiles/boundaries/) |
 | All missionary stations | [`data/raw/shapefiles/points/AllStations_Missionary.*`](data/raw/shapefiles/points/) |
 | Main stations | [`data/raw/shapefiles/points/Main Stations.*`](data/raw/shapefiles/points/) |
-| Commercial centers | [`data/raw/shapefiles/points/Commercial Centers.*`](data/raw/shapefiles/points/) |
 
 ---
 
