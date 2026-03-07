@@ -1,0 +1,17 @@
+{
+"type": "FeatureCollection",
+"name": "main_missionary_stations",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "Id": 0, "Station": "Harput" }, "geometry": { "type": "Point", "coordinates": [ 39.287217868420193, 38.772648503517523 ] } },
+{ "type": "Feature", "properties": { "Id": 0, "Station": null }, "geometry": { "type": "Point", "coordinates": [ 42.337147901162112, 38.44515439478468 ] } },
+{ "type": "Feature", "properties": { "Id": 0, "Station": null }, "geometry": { "type": "Point", "coordinates": [ 43.401310922582432, 38.48372728742109 ] } },
+{ "type": "Feature", "properties": { "Id": 0, "Station": null }, "geometry": { "type": "Point", "coordinates": [ 39.742492963633296, 41.088877837495474 ] } },
+{ "type": "Feature", "properties": { "Id": 0, "Station": null }, "geometry": { "type": "Point", "coordinates": [ 41.312641886556733, 40.013218589658706 ] } },
+{ "type": "Feature", "properties": { "Id": 0, "Station": null }, "geometry": { "type": "Point", "coordinates": [ 40.782962710242288, 37.374838241388694 ] } },
+{ "type": "Feature", "properties": { "Id": 0, "Station": null }, "geometry": { "type": "Point", "coordinates": [ 37.403617488013872, 37.145144725895904 ] } },
+{ "type": "Feature", "properties": { "Id": 0, "Station": null }, "geometry": { "type": "Point", "coordinates": [ 35.39598436478628, 38.769537050386191 ] } },
+{ "type": "Feature", "properties": { "Id": 0, "Station": null }, "geometry": { "type": "Point", "coordinates": [ 35.400868683188811, 40.955563440495823 ] } },
+{ "type": "Feature", "properties": { "Id": 0, "Station": null }, "geometry": { "type": "Point", "coordinates": [ 28.932724870095555, 40.190073426078349 ] } }
+]
+}

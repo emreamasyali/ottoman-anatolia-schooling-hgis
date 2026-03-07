@@ -1,0 +1,57 @@
+{
+  "geojson": [
+    {
+      "file": "data/derived/geojson/kazas_boundaries.geojson",
+      "source_shapefile": "data/raw/shapefiles/boundaries/AllKazas_December2019.shp",
+      "description": "Ottoman kaza (district) boundaries, manually traced from 1:200,000 Ottoman cadastral maps (c. 1899–1914). Each polygon represents one administrative kaza. Attribute RTENO is the internal kaza identifier used to join tabular data.",
+      "crs": "EPSG:4326 (WGS-84)"
+    },
+    {
+      "file": "data/derived/geojson/missionary_stations.geojson",
+      "source_shapefile": "data/raw/shapefiles/points/AllStations_Missionary.shp",
+      "description": "Protestant missionary stations and outstations in Ottoman Anatolia, compiled from ABC-FM (American Board of Commissioners for Foreign Missions) Annual Reports, 1870–1914. Includes main stations, outstations, and dependent congregations. Column 'Out-Statio'==1 denotes an outstation; 'Main Stati'==1 a main station.",
+      "crs": "EPSG:4326 (WGS-84)"
+    },
+    {
+      "file": "data/derived/geojson/armenian_schools.geojson",
+      "source_shapefile": "data/raw/shapefiles/points/ArmenianSchools.shp",
+      "description": "Armenian community schools geocoded from the 1901 Ottoman school census (Maarif Salnamesi). Point locations derived by matching school names to the Ottoman Gazetteer (ver. 9).",
+      "crs": "EPSG:4326 (WGS-84)"
+    },
+    {
+      "file": "data/derived/geojson/christian_buildings.geojson",
+      "source_shapefile": "data/raw/shapefiles/points/AllChristianBuildings.shp",
+      "description": "Christian religious buildings (churches, chapels, baptisteries) geocoded from OpenStreetMap and historical sources.",
+      "crs": "EPSG:4326 (WGS-84)"
+    },
+    {
+      "file": "data/derived/geojson/main_missionary_stations.geojson",
+      "source_shapefile": "data/raw/shapefiles/points/Main Stations.shp",
+      "description": "The ten principal ABC-FM mission stations in Anatolia, used as the primary administrative hubs of the mission network.",
+      "crs": "EPSG:4326 (WGS-84)"
+    },
+    {
+      "file": "data/derived/geojson/commercial_centers.geojson",
+      "source_shapefile": "data/raw/shapefiles/points/Commercial Centers.shp",
+      "description": "Major commercial centers identified from Ottoman trade directories and Cuinet's La Turquie d'Asie (1890–1894).",
+      "crs": "EPSG:4326 (WGS-84)"
+    }
+  ],
+  "csv": [
+    {
+      "file": "data/derived/csv/master_dataset.csv",
+      "source_stata": "data/raw/stata/master_dataset.dta",
+      "description": "Master merged dataset: 1881 Ottoman census demographics joined to kaza geometries. Unit of observation is the kaza. Key variables include population by ethno-religious group, schooling counts, and geographic controls."
+    },
+    {
+      "file": "data/derived/csv/census_1881.csv",
+      "source_stata": "data/raw/stata/census_1881.dta",
+      "description": "1881/82–1893 Ottoman census (Nüfus-i Umumi) tabulated at the kaza level. Population counts by sex and ethno-religious community (Muslims, Greeks, Armenians, Bulgarians, Catholics, Jews, Protestants, Latins, Monophysites, Non-Muslim Gypsies, Foreign Citizens). Source: Karpat (1985)."
+    },
+    {
+      "file": "data/derived/csv/schools.csv",
+      "source_stata": "data/raw/stata/schools.dta",
+      "description": "Ottoman school census data c. 1876 and 1902–1908, from the Maarif Salnamesi (Education Yearbooks). Counts of male/female ibtidai (primary) and rüşdiye (secondary) schools per kaza."
+    }
+  ]
+}

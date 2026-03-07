@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "commercial_centers",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "Id": 0 }, "geometry": { "type": "Point", "coordinates": [ 28.798696438934012, 41.002193540918775 ] } },
+{ "type": "Feature", "properties": { "Id": 0 }, "geometry": { "type": "Point", "coordinates": [ 27.208302154878979, 38.370221231837583 ] } },
+{ "type": "Feature", "properties": { "Id": 0 }, "geometry": { "type": "Point", "coordinates": [ 28.935144409229615, 40.19148521279358 ] } },
+{ "type": "Feature", "properties": { "Id": 0 }, "geometry": { "type": "Point", "coordinates": [ 32.773846308696207, 40.026851624110066 ] } }
+]
+}
