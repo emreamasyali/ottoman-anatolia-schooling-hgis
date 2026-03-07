@@ -21,12 +21,12 @@
 const DATA_BASE = '../data/derived/geojson/';
 
 const LAYERS_CONFIG = {
-  kazas:           { file: 'kazas_boundaries.geojson',         label: 'Kaza boundaries' },
-  stations:        { file: 'missionary_stations.geojson',       label: 'Missionary stations' },
-  mainStations:    { file: 'main_missionary_stations.geojson',  label: 'Main stations' },
-  armenian:        { file: 'armenian_schools.geojson',          label: 'Armenian schools' },
-  christian:       { file: 'christian_buildings.geojson',       label: 'Christian buildings' },
-  commercial:      { file: 'commercial_centers.geojson',        label: 'Commercial centers' },
+  kazas:           { file: 'kazas_boundaries.geojson',            label: 'Kaza boundaries' },
+  locations:       { file: 'missionary_locations.geojson',        label: 'All missionary locations' },
+  mainStations:    { file: 'main_missionary_stations.geojson',    label: 'Main stations' },
+  armenian:        { file: 'armenian_schools.geojson',            label: 'Armenian schools' },
+  christian:       { file: 'christian_buildings.geojson',         label: 'Christian buildings' },
+  commercial:      { file: 'commercial_centers.geojson',          label: 'Commercial centers' },
 };
 
 // Choropleth breaks for ChristianShare (0–1)
@@ -35,7 +35,7 @@ const CHOROPLETH_COLORS = ['#0f3460','#1a4a7a','#1d6fa8','#2994d4','#6ab8e8','#b
 
 // Point style presets
 const POINT_STYLES = {
-  stations:     { color: '#ff9f43', radius: 5,  label: 'Missionary station' },
+  locations:    { color: '#ff9f43', radius: 5,  label: 'Missionary location' },
   mainStations: { color: '#ff4757', radius: 8,  label: 'Main station' },
   armenian:     { color: '#a29bfe', radius: 4,  label: 'Armenian school' },
   christian:    { color: '#55efc4', radius: 3,  label: 'Christian building' },
@@ -49,8 +49,8 @@ const state = {
   leafletLayers: {},   // key → Leaflet layer object
   geojsonData: {},     // key → raw GeoJSON
   visible: {
-    kazas: true, stations: true, mainStations: true,
-    armenian: false, christian: false, commercial: true,
+    kazas: true, locations: true, mainStations: true,
+    armenian: true, christian: false, commercial: true,
   },
 };
 
@@ -131,6 +131,23 @@ function kazaPopup(feature) {
       <tr><td>Christian share</td><td>${share}</td></tr>
       <tr><td>Armenian share</td><td>${armShare}</td></tr>
       <tr><td>Kaz. code</td><td>${p.kazcode || p.RTENO || '—'}</td></tr>
+    </table>`;
+}
+
+function locationPopup(feature) {
+  const p = feature.properties;
+  const isMain = p.MainStation == 1;
+  const isOut  = p.OutStation  == 1;
+  const kind   = isMain ? 'Main Station' : isOut ? 'Outstation' : 'Station';
+  const tagCol = isMain ? '#ff4757' : '#ff9f43';
+  const year   = p.DateFounded ? String(p.DateFounded).split('.')[0] : '—';
+  return `
+    <h4>${p.Name || 'Missionary Location'}</h4>
+    <span class="tag" style="background:${tagCol}22;color:${tagCol};">${kind}</span>
+    <table>
+      <tr><td>Founded</td><td>${year}</td></tr>
+      <tr><td>Dep. station</td><td>${p.Dependent || '—'}</td></tr>
+      <tr><td>Notes</td><td>${p.Note || '—'}</td></tr>
     </table>`;
 }
 
@@ -349,8 +366,8 @@ async function main() {
   if (data.commercial) {
     state.leafletLayers.commercial = buildPointLayer(data.commercial, 'commercial', commercialPopup);
   }
-  if (data.stations) {
-    state.leafletLayers.stations = buildPointLayer(data.stations, 'stations', stationPopup);
+  if (data.locations) {
+    state.leafletLayers.locations = buildPointLayer(data.locations, 'locations', locationPopup);
   }
   if (data.mainStations) {
     state.leafletLayers.mainStations = buildPointLayer(data.mainStations, 'mainStations', stationPopup);

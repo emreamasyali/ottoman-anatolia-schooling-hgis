@@ -53,8 +53,14 @@ SHAPEFILE_JOBS = [
         "kazas_boundaries",
         "Ottoman kaza (district) boundaries, manually traced from 1:200,000 "
         "Ottoman cadastral maps (c. 1899–1914). Each polygon represents one "
-        "administrative kaza. Attribute RTENO is the internal kaza identifier "
-        "used to join tabular data.",
+        "administrative kaza. 1881 census demographics joined on RTENO.",
+    ),
+    (
+        "points/Missionary Locations Jeff 20190131.shp",
+        "missionary_locations",
+        "All Protestant missionary locations in Ottoman Anatolia (492 points), "
+        "compiled from ABC-FM Annual Reports, 1870–1914. Includes date founded, "
+        "dependent station, and station type (main vs outstation).",
     ),
     (
         "points/AllStations_Missionary.shp",
@@ -92,8 +98,34 @@ SHAPEFILE_JOBS = [
     ),
 ]
 
+# Census columns to join into kaza boundaries (prefixed by ArcGIS join)
+CENSUS_COL_RENAME = {
+    "census_gis_merged_csv_ChristianS": "ChristianShare",
+    "census_gis_merged_csv_ArmenianSh": "ArmenianShare",
+    "census_gis_merged_csv_GrandTotal": "GrandTotal",
+    "census_gis_merged_csv_Total_Musl": "Total_Muslim",
+    "census_gis_merged_csv_Total_Chri": "Total_Christian",
+    "census_gis_merged_csv_Total_Arme": "Total_Armenian",
+    "census_gis_merged_csv_Muslims_Fe": "Muslims_Female",
+    "census_gis_merged_csv_Muslims_Ma": "Muslims_Male",
+    "census_gis_merged_csv_Armenians_": "Armenians_Total",
+    "census_gis_merged_csv_Greeks_Fem": "Greeks_Female",
+    "census_gis_merged_csv_Greeks_Mal": "Greeks_Male",
+    "census_gis_merged_csv_Vilayet":    "Vilayet",
+    "census_gis_merged_csv_Sanjak":     "Sanjak",
+    "census_gis_merged_csv_kaza":       "KazaName",
+    "census_gis_merged_csv_kazcode":    "kazcode",
+    "census_gis_merged_csv_Christian_": "Christian_Muslim_Ratio",
+    "census_gis_merged_csv_Armenian_M": "Armenian_Muslim_Ratio",
+}
+
 # Columns to rename for clarity (shapefile truncation artefacts)
 RENAME_MAP = {
+    "missionary_locations": {
+        "Main Stati": "MainStation",
+        "Out-Statio": "OutStation",
+        "Date Found": "DateFounded",
+    },
     "missionary_stations": {
         "Modern Nam": "ModernName",
         "Main Stati": "MainStation",
@@ -131,7 +163,27 @@ DROP_COLS = {
 }
 
 
-def shp_to_geojson(src: Path, dst: Path, stem: str) -> None:
+def join_census(gdf: "gpd.GeoDataFrame", census_path: Path) -> "gpd.GeoDataFrame":
+    """Join 1881 census attributes into the kaza boundary GeoDataFrame on RTENO."""
+    census, _ = pyreadstat.read_dta(census_path)
+    # Drop raw kazcode before renaming to avoid duplicate after rename
+    if "kazcode" in census.columns and "census_gis_merged_csv_kazcode" in census.columns:
+        census = census.drop(columns=["kazcode"])
+    census = census.rename(columns=CENSUS_COL_RENAME)
+    keep = ["RTENO", "KazaName", "Vilayet", "Sanjak", "kazcode",
+            "ChristianShare", "ArmenianShare", "GrandTotal",
+            "Total_Muslim", "Total_Christian", "Total_Armenian",
+            "Muslims_Female", "Muslims_Male",
+            "Greeks_Female", "Greeks_Male", "Armenians_Total",
+            "Christian_Muslim_Ratio", "Armenian_Muslim_Ratio"]
+    census_sub = census[[c for c in keep if c in census.columns]].drop_duplicates("RTENO")
+    merged = gdf.merge(census_sub, on="RTENO", how="left")
+    matched = merged["ChristianShare"].notna().sum()
+    print(f"  Census join: {matched}/{len(merged)} kazas matched", end=" ", flush=True)
+    return merged
+
+
+def shp_to_geojson(src: Path, dst: Path, stem: str, census_path: Path = None) -> None:
     print(f"  Converting {src.name} → {dst.name} ...", end=" ", flush=True)
     gdf = gpd.read_file(src)
 
@@ -142,6 +194,10 @@ def shp_to_geojson(src: Path, dst: Path, stem: str) -> None:
     elif gdf.crs.to_epsg() != 4326:
         gdf = gdf.to_crs("EPSG:4326")
 
+    # Join census data for kaza boundaries
+    if stem == "kazas_boundaries" and census_path and census_path.exists():
+        gdf = join_census(gdf, census_path)
+
     # Rename columns
     if stem in RENAME_MAP:
         gdf = gdf.rename(columns=RENAME_MAP[stem])
@@ -151,7 +207,7 @@ def shp_to_geojson(src: Path, dst: Path, stem: str) -> None:
         drop = [c for c in DROP_COLS[stem] if c in gdf.columns]
         gdf = gdf.drop(columns=drop)
 
-    # Round coordinates to 6 decimal places to keep file size manageable
+    # Simplify polygons to reduce file size
     gdf["geometry"] = gdf["geometry"].simplify(0.0001, preserve_topology=True) \
         if gdf.geometry.geom_type.iloc[0] == "Polygon" else gdf["geometry"]
 
@@ -258,6 +314,8 @@ def main():
     print(f"Repository root: {root}")
     print(f"{'='*60}\n")
 
+    census_path = raw_dta / "census_1881.dta"
+
     # --- Shapefiles → GeoJSON ---
     print("[ Shapefiles → GeoJSON ]\n")
     for src_rel, stem, _ in SHAPEFILE_JOBS:
@@ -266,7 +324,7 @@ def main():
         if not src.exists():
             print(f"  SKIP {src.name} (not found at {src})")
             continue
-        shp_to_geojson(src, dst, stem)
+        shp_to_geojson(src, dst, stem, census_path=census_path)
 
     # --- Stata → CSV ---
     print("\n[ Stata .dta → CSV ]\n")

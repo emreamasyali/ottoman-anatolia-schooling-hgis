@@ -3,7 +3,13 @@
     {
       "file": "data/derived/geojson/kazas_boundaries.geojson",
       "source_shapefile": "data/raw/shapefiles/boundaries/AllKazas_December2019.shp",
-      "description": "Ottoman kaza (district) boundaries, manually traced from 1:200,000 Ottoman cadastral maps (c. 1899–1914). Each polygon represents one administrative kaza. Attribute RTENO is the internal kaza identifier used to join tabular data.",
+      "description": "Ottoman kaza (district) boundaries, manually traced from 1:200,000 Ottoman cadastral maps (c. 1899–1914). Each polygon represents one administrative kaza. 1881 census demographics joined on RTENO.",
+      "crs": "EPSG:4326 (WGS-84)"
+    },
+    {
+      "file": "data/derived/geojson/missionary_locations.geojson",
+      "source_shapefile": "data/raw/shapefiles/points/Missionary Locations Jeff 20190131.shp",
+      "description": "All Protestant missionary locations in Ottoman Anatolia (492 points), compiled from ABC-FM Annual Reports, 1870–1914. Includes date founded, dependent station, and station type (main vs outstation).",
       "crs": "EPSG:4326 (WGS-84)"
     },
     {
