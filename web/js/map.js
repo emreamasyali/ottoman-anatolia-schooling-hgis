@@ -6,9 +6,6 @@
  *   1. Kaza boundaries – choropleth by Christian share (1881 census)
  *   2. Missionary stations – all ABC-FM stations & outstations
  *   3. Main missionary stations – the 10 principal stations
- *   4. Armenian schools – geocoded from 1901 Maarif Salnamesi
- *   5. Christian buildings – churches & chapels (OpenStreetMap + historical)
- *   6. Commercial centers – major Ottoman trade hubs
  *
  * Data files live in ../data/derived/ (GeoJSON) and are loaded with fetch().
  * The map is fully static and deployable via GitHub Pages.
@@ -24,9 +21,6 @@ const LAYERS_CONFIG = {
   kazas:           { file: 'kazas_boundaries.geojson',            label: 'Kaza boundaries' },
   locations:       { file: 'missionary_locations.geojson',        label: 'All missionary locations' },
   mainStations:    { file: 'main_missionary_stations.geojson',    label: 'Main stations' },
-  armenian:        { file: 'armenian_schools.geojson',            label: 'Armenian schools' },
-  christian:       { file: 'christian_buildings.geojson',         label: 'Christian buildings' },
-  commercial:      { file: 'commercial_centers.geojson',          label: 'Commercial centers' },
 };
 
 // Choropleth breaks for ChristianShare (0–1)
@@ -37,9 +31,6 @@ const CHOROPLETH_COLORS = ['#0f3460','#1a4a7a','#1d6fa8','#2994d4','#6ab8e8','#b
 const POINT_STYLES = {
   locations:    { color: '#ff9f43', radius: 5,  label: 'Missionary location' },
   mainStations: { color: '#ff4757', radius: 8,  label: 'Main station' },
-  armenian:     { color: '#a29bfe', radius: 4,  label: 'Armenian school' },
-  christian:    { color: '#55efc4', radius: 3,  label: 'Christian building' },
-  commercial:   { color: '#ffeaa7', radius: 7,  label: 'Commercial center' },
 };
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -63,7 +54,6 @@ const state = {
   geojsonData: {},     // key → raw GeoJSON
   visible: {
     kazas: true, locations: true, mainStations: true,
-    armenian: true, christian: false, commercial: true,
     ottoman1899: false,
   },
 };
@@ -183,41 +173,6 @@ function stationPopup(feature) {
       <tr><td>Modern name</td><td>${p.ModernName || '—'}</td></tr>
       <tr><td>Dep. station</td><td>${p.Dependent || '—'}</td></tr>
       <tr><td>Variations</td><td>${p.Variations || '—'}</td></tr>
-    </table>`;
-}
-
-function armenianSchoolPopup(feature) {
-  const p = feature.properties;
-  return `
-    <h4>${p.name || p.properti_1 || 'Armenian School'}</h4>
-    <span class="tag" style="background:#a29bfe22;color:#a29bfe;">Armenian school</span>
-    <table>
-      <tr><td>Type</td><td>${p.type_detail || p.type || '—'}</td></tr>
-      <tr><td>Location</td><td>${p.location || p.properti_3 || '—'}</td></tr>
-      <tr><td>Kaza</td><td>${p.kaza || p.properti_4 || '—'}</td></tr>
-      <tr><td>Vilayet</td><td>${p.vilayet || p.properti_5 || '—'}</td></tr>
-    </table>`;
-}
-
-function christianBuildingPopup(feature) {
-  const p = feature.properties;
-  return `
-    <h4>${p.name || 'Christian Building'}</h4>
-    <span class="tag" style="background:#55efc422;color:#55efc4;">Christian building</span>
-    <table>
-      <tr><td>Denomination</td><td>${p.denomination || p.properti_2 || '—'}</td></tr>
-      <tr><td>City</td><td>${p.city || p.properti_4 || '—'}</td></tr>
-      <tr><td>Country</td><td>${p.country || p.properti_3 || '—'}</td></tr>
-    </table>`;
-}
-
-function commercialPopup(feature) {
-  const p = feature.properties;
-  return `
-    <h4>Commercial Center</h4>
-    <span class="tag" style="background:#ffeaa722;color:#ffeaa7;">Commercial center</span>
-    <table>
-      <tr><td>ID</td><td>${p.Id || '—'}</td></tr>
     </table>`;
 }
 
@@ -377,15 +332,6 @@ async function main() {
   // Build and register layers (order matters for z-stacking)
   if (data.kazas) {
     state.leafletLayers.kazas = buildKazaLayer(data.kazas);
-  }
-  if (data.armenian) {
-    state.leafletLayers.armenian = buildPointLayer(data.armenian, 'armenian', armenianSchoolPopup);
-  }
-  if (data.christian) {
-    state.leafletLayers.christian = buildPointLayer(data.christian, 'christian', christianBuildingPopup);
-  }
-  if (data.commercial) {
-    state.leafletLayers.commercial = buildPointLayer(data.commercial, 'commercial', commercialPopup);
   }
   if (data.locations) {
     state.leafletLayers.locations = buildPointLayer(data.locations, 'locations', locationPopup);
