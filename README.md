@@ -7,7 +7,7 @@ point data for missionary institutions, Armenian schools and Christian
 buildings, the 1881 Ottoman census demographics, and an interactive Leaflet
 web map — all deployable via GitHub Pages.
 
-**[→ Open interactive map](https://YOUR_USERNAME.github.io/ottoman-anatolia-schooling-hgis/web/](https://emreamasyali.github.io/ottoman-anatolia-schooling-hgis/web/)**
+**[→ Open interactive map](https://emreamasyali.github.io/ottoman-anatolia-schooling-hgis/web/)**
 
 ---
 
