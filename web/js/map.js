@@ -262,7 +262,7 @@ function updateStatsPanel(p) {
     <div class="stat-row"><span>Muslims</span>
       <span>${fmt((+p.Muslims_Female || 0) + (+p.Muslims_Male || 0))}</span></div>
     <div class="stat-row"><span>Armenians</span>
-      <span>${fmt((+p.Armenians_Female || 0) + (+p.Armenians_Male || 0))}</span></div>
+      <span>${fmt(p.Total_Armenian)}</span></div>
     <div class="stat-row"><span>Greeks</span>
       <span>${fmt((+p.Greeks_Female || 0) + (+p.Greeks_Male || 0))}</span></div>
     <div class="stat-row"><span>Christian share</span><span>${pct(p.ChristianShare)}</span></div>
