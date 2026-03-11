@@ -50,14 +50,21 @@
       "description": "Master merged dataset: 1881 Ottoman census demographics joined to kaza geometries. Unit of observation is the kaza. Key variables include population by ethno-religious group, schooling counts, and geographic controls."
     },
     {
-      "file": "data/derived/csv/census_1881.csv",
-      "source_stata": "data/raw/stata/census_1881.dta",
-      "description": "1881/82–1893 Ottoman census (Nüfus-i Umumi) tabulated at the kaza level. Population counts by sex and ethno-religious community (Muslims, Greeks, Armenians, Bulgarians, Catholics, Jews, Protestants, Latins, Monophysites, Non-Muslim Gypsies, Foreign Citizens). Source: Karpat (1985)."
-    },
-    {
       "file": "data/derived/csv/schools.csv",
       "source_stata": "data/raw/stata/schools.dta",
       "description": "Ottoman school census data c. 1876 and 1902–1908, from the Maarif Salnamesi (Education Yearbooks). Counts of male/female ibtidai (primary) and rüşdiye (secondary) schools per kaza."
+    },
+    {
+      "file": "data/derived/csv/census_1881.csv",
+      "source": "data/raw/CensusNew.xlsx",
+      "description": "1881/82–1893 Ottoman census (Nüfus-i Umumi) tabulated at the kaza level. Population counts by sex and ethno-religious community (Muslims, Greeks, Armenians, Bulgarians, Catholics, Jews, Protestants, Latins, Monophysites, Non-Muslim Gypsies, Foreign Citizens). Includes all 16 vilayets + Edirne Vilayet (European Turkey). Source: Karpat (1985). Clean labels from CensusNew.xlsx."
+    }
+  ],
+  "stata": [
+    {
+      "file": "data/derived/stata/census_1881.dta",
+      "source": "data/raw/CensusNew.xlsx",
+      "description": "1881/82–1893 Ottoman census (Nüfus-i Umumi) tabulated at the kaza level. Population counts by sex and ethno-religious community (Muslims, Greeks, Armenians, Bulgarians, Catholics, Jews, Protestants, Latins, Monophysites, Non-Muslim Gypsies, Foreign Citizens). Includes all 16 vilayets + Edirne Vilayet (European Turkey). Source: Karpat (1985). Clean labels from CensusNew.xlsx."
     }
   ]
 }

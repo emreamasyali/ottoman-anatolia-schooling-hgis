@@ -98,6 +98,102 @@ SHAPEFILE_JOBS = [
     ),
 ]
 
+# Relative path from repo root to the canonical census source
+CENSUSNEW_REL = Path("data/raw/CensusNew.xlsx")
+
+# Mapping: shapefile RTENO (for 5 Edirne polygons not in census_1881.dta)
+# → "Name of Kaza" value in CensusNew.xlsx.
+# The AllKazas_OttomanCensus_April2020.csv had misaligned labels for Edirne;
+# CensusNew carries the correct names and figures.
+EDIRNE_RTENO_TO_CN_KAZA = {
+    "Edirne_Edirne_Kirkkilise Kaza": "Kirkkilise (Korklareli) Kaza",
+    "Edirne_Edirne_Tekirdag Kaza":   "Tekirdağı (Tekfurdağı)",
+    "Edirne_Edirne_Gelibolu Kaza":   "Gelibolu Kaza",
+    "Edirne_Edirne_Edirne Kaza":     "Edirne Central Sanjak",
+    "Edirne_Edirne_Dedeagac Kaza":   "Dedeağaç Kaza",
+}
+
+# CensusNew column → GeoJSON keep-list column name
+CENSUSNEW_TO_KEEP = {
+    "Name of Kaza":          "KazaName",
+    "Name of Vilayet":       "Vilayet",         # strip "Vilayet" suffix below
+    "Name of Sanjak":        "Sanjak",           # strip "Sanjak" suffix below
+    "kazcode":               "kazcode",
+    "Christian Share":       "ChristianShare",
+    "Armenian Share":        "ArmenianShare",
+    "Grand Total":           "GrandTotal",
+    "Total_Muslim":          "Total_Muslim",
+    "Total_Christian":       "Total_Christian",
+    "Total_Armenian":        "Total_Armenian",
+    "Muslims_Female":        "Muslims_Female",
+    "Muslims_Male":          "Muslims_Male",
+    "Armenians_Female":      "Armenians_Total",  # field name kept for back-compat
+    "Greeks_Female":         "Greeks_Female",
+    "Greeks_Male":           "Greeks_Male",
+    "Christian_Muslim_Ratio": "Christian_Muslim_Ratio",
+    "Armenian_Muslim_Ratio":  "Armenian_Muslim_Ratio",
+}
+
+# CensusNew column renames for the clean CSV / Stata export
+CENSUSNEW_COL_RENAME = {
+    "Name of Kaza":                  "KazaName",
+    "Name of Sanjak":                "Sanjak",
+    "Name of Vilayet":               "Vilayet",
+    "Non-Muslim Gypsies_Female":     "NonMuslimGypsies_Female",
+    "Non-Muslim Gypsies_Male":       "NonMuslimGypsies_Male",
+    "Foreign Citizens_Female":       "ForeignCitizens_Female",
+    "Foreign Citizens_Male":         "ForeignCitizens_Male",
+    "Armenian Share":                "ArmenianShare",
+    "Christian Share":               "ChristianShare",
+    "Grand Total":                   "GrandTotal",
+    "Sanjak Center":                 "SanjakCenter",
+}
+
+# Human-readable variable labels for the Stata .dta output
+CENSUSNEW_VAR_LABELS = {
+    "KazaName":                  "Name of kaza (sub-district)",
+    "kazcode":                   "Kaza code (vilayet-sanjak-kaza)",
+    "Sanjak":                    "Name of sanjak (province subdivision)",
+    "sancode":                   "Sanjak code",
+    "Vilayet":                   "Name of vilayet (province)",
+    "vilcode":                   "Vilayet code",
+    "Muslims_Female":            "Muslim female population",
+    "Muslims_Male":              "Muslim male population",
+    "Greeks_Female":             "Greek Orthodox female population",
+    "Greeks_Male":               "Greek Orthodox male population",
+    "Armenians_Female":          "Armenian female population",
+    "Armenians_Male":            "Armenian male population",
+    "Bulgarians_Female":         "Bulgarian female population",
+    "Bulgarians_Male":           "Bulgarian male population",
+    "Catholics_Female":          "Catholic female population",
+    "Catholics_Male":            "Catholic male population",
+    "Jews_Female":               "Jewish female population",
+    "Jews_Male":                 "Jewish male population",
+    "Protestants_Female":        "Protestant female population",
+    "Protestants_Male":          "Protestant male population",
+    "Latins_Female":             "Latin female population",
+    "Latins_Male":               "Latin male population",
+    "Monophysites_Female":       "Monophysite female population",
+    "Monophysites_Male":         "Monophysite male population",
+    "NonMuslimGypsies_Female":   "Non-Muslim Gypsy female population",
+    "NonMuslimGypsies_Male":     "Non-Muslim Gypsy male population",
+    "ForeignCitizens_Female":    "Foreign citizen female population",
+    "ForeignCitizens_Male":      "Foreign citizen male population",
+    "Total_Muslim":              "Total Muslim population",
+    "Total_Christian":           "Total Christian population",
+    "Total_NonMuslim":           "Total non-Muslim population",
+    "Total_Armenian":            "Total Armenian population",
+    "Christian_Muslim_Ratio":    "Ratio of Christians to Muslims",
+    "Armenian_Muslim_Ratio":     "Ratio of Armenians to Muslims",
+    "ArmenianShare":             "Armenian share of total population",
+    "ChristianShare":            "Christian share of total population",
+    "Total_Female":              "Total female population",
+    "Total_Male":                "Total male population",
+    "GrandTotal":                "Grand total population",
+    "Source":                    "Data source reference",
+    "SanjakCenter":              "Sanjak center dummy (1=central kaza)",
+}
+
 # Census columns to join into kaza boundaries (prefixed by ArcGIS join)
 CENSUS_COL_RENAME = {
     "census_gis_merged_csv_ChristianS": "ChristianShare",
@@ -181,44 +277,49 @@ def join_census(gdf: "gpd.GeoDataFrame", census_path: Path) -> "gpd.GeoDataFrame
     matched = merged["ChristianShare"].notna().sum()
     print(f"  Census join: {matched}/{len(merged)} kazas matched", end=" ", flush=True)
 
-    # Supplement with CSV for kazas absent from the Stata file (e.g. Edirne Vilayet)
+    # Supplement Edirne Vilayet kazas absent from census_1881.dta using CensusNew.xlsx
     unmatched_mask = merged["ChristianShare"].isna() & merged["RTENO"].notna()
     if unmatched_mask.any():
-        csv_path = census_path.parent.parent.parent.parent / "AllKazas_OttomanCensus_April2020.csv"
-        if csv_path.exists():
-            csv = pd.read_csv(csv_path, encoding="latin1")
-            csv = csv[csv["RTENO"].notna()].copy()
-            csv["GrandTotal"] = csv["TotalMuslim"] + csv["TotalNonMuslim"]
-            csv["Vilayet"] = csv["vilayet"].str.replace(r"\s*Vilayet.*", "", regex=True).str.strip()
-            csv["Sanjak"]  = csv["sanjak"].str.replace(r"\s*Sanjak.*",  "", regex=True).str.strip()
-            csv_rename = {
-                "kaza":               "KazaName",
-                "kazcode":            "kazcode",
-                "ChristianShare":     "ChristianShare",
-                "ArmenianShare":      "ArmenianShare",
-                "TotalMuslim":        "Total_Muslim",
-                "TotalChristian":     "Total_Christian",
-                "TotalArmenian":      "Total_Armenian",
-                "MuslimFemale":       "Muslims_Female",
-                "MuslimMale":         "Muslims_Male",
-                "ArmenianFemale":     "Armenians_Total",
-                "GreekFemale":        "Greeks_Female",
-                "GreekMale":          "Greeks_Male",
-                "ChristianMuslimRatio": "Christian_Muslim_Ratio",
-                "ArmenianMuslimRatio":  "Armenian_Muslim_Ratio",
-            }
-            csv = csv.rename(columns=csv_rename)
-            csv_sub = csv[["RTENO"] + [c for c in keep if c in csv.columns and c != "RTENO"]].drop_duplicates("RTENO")
-            fill_cols = [c for c in keep if c in csv_sub.columns and c != "RTENO"]
-            # Build patch indexed like merged's unmatched rows, then update() in-place
-            unmatched_rtenos = merged.loc[unmatched_mask, "RTENO"].values
-            patch = pd.DataFrame({"RTENO": unmatched_rtenos}).merge(
-                csv_sub[["RTENO"] + fill_cols], on="RTENO", how="left"
-            )
-            patch.index = merged.index[unmatched_mask]
-            merged.update(patch[fill_cols])
+        cn_path = census_path.parent.parent.parent / CENSUSNEW_REL.name
+        # Also try the canonical location relative to repo root
+        if not cn_path.exists():
+            cn_path = census_path.parent.parent.parent.parent / CENSUSNEW_REL
+        if cn_path.exists():
+            cn = pd.read_excel(cn_path)
+            cn["Vilayet"] = cn["Name of Vilayet"].str.replace(
+                r"\s*Vilayet.*|\s*Province.*", "", regex=True).str.strip()
+            cn["Sanjak"]  = cn["Name of Sanjak"].str.replace(
+                r"\s*Sanjak.*", "", regex=True).str.strip()
+            # Build kaza-name → row lookup (using CensusNew "Name of Kaza")
+            cn_lookup = cn.set_index("Name of Kaza")
+            fill_cols = [c for c in keep if c != "RTENO"]
+            patch_rows = {}
+            for rteno in merged.loc[unmatched_mask, "RTENO"].values:
+                cn_kaza = EDIRNE_RTENO_TO_CN_KAZA.get(rteno)
+                if cn_kaza and cn_kaza in cn_lookup.index:
+                    row = cn_lookup.loc[cn_kaza]
+                    patch_row = {}
+                    for cn_col, keep_col in CENSUSNEW_TO_KEEP.items():
+                        if keep_col in fill_cols:
+                            if keep_col in ("Vilayet", "Sanjak"):
+                                patch_row[keep_col] = cn.loc[
+                                    cn["Name of Kaza"] == cn_kaza,
+                                    keep_col].iloc[0]
+                            elif cn_col in row.index:
+                                patch_row[keep_col] = row[cn_col]
+                    patch_rows[rteno] = patch_row
+            if patch_rows:
+                for col in fill_cols:
+                    if col not in merged.columns:
+                        merged[col] = None
+                patch_df = pd.DataFrame(patch_rows).T   # RTENOs as index
+                patch_df.index.name = "RTENO"
+                patch_df = patch_df.reset_index()
+                patch_df.index = merged.index[
+                    merged["RTENO"].isin(patch_rows.keys()) & unmatched_mask]
+                merged.update(patch_df[[c for c in fill_cols if c in patch_df.columns]])
             supplemented = (merged["ChristianShare"].notna().sum() - matched)
-            print(f"(+{supplemented} from CSV)", end=" ", flush=True)
+            print(f"(+{supplemented} from CensusNew)", end=" ", flush=True)
 
     return merged
 
@@ -272,15 +373,6 @@ STATA_JOBS = [
         "geographic controls.",
     ),
     (
-        "census_1881.dta",
-        "census_1881.csv",
-        "1881/82–1893 Ottoman census (Nüfus-i Umumi) tabulated at the kaza "
-        "level. Population counts by sex and ethno-religious community "
-        "(Muslims, Greeks, Armenians, Bulgarians, Catholics, Jews, "
-        "Protestants, Latins, Monophysites, Non-Muslim Gypsies, "
-        "Foreign Citizens). Source: Karpat (1985).",
-    ),
-    (
         "schools.dta",
         "schools.csv",
         "Ottoman school census data c. 1876 and 1902–1908, from the "
@@ -288,6 +380,43 @@ STATA_JOBS = [
         "ibtidai (primary) and rüşdiye (secondary) schools per kaza.",
     ),
 ]
+
+CENSUSNEW_DESC = (
+    "1881/82–1893 Ottoman census (Nüfus-i Umumi) tabulated at the kaza level. "
+    "Population counts by sex and ethno-religious community (Muslims, Greeks, "
+    "Armenians, Bulgarians, Catholics, Jews, Protestants, Latins, Monophysites, "
+    "Non-Muslim Gypsies, Foreign Citizens). Includes all 16 vilayets + Edirne "
+    "Vilayet (European Turkey). Source: Karpat (1985). Clean labels from "
+    "CensusNew.xlsx."
+)
+
+
+def censusnew_export(cn_path: Path, out_csv: Path, out_dta: Path) -> None:
+    """Export CensusNew.xlsx → clean CSV and labelled Stata .dta."""
+    print(f"  Exporting CensusNew.xlsx → {out_csv.name} + {out_dta.name} ...",
+          end=" ", flush=True)
+    df = pd.read_excel(cn_path)
+    df = df.rename(columns=CENSUSNEW_COL_RENAME)
+
+    # Strip "Vilayet"/"Province" and "Sanjak" suffixes for the full-name columns
+    if "Vilayet" in df.columns:
+        df["Vilayet"] = df["Vilayet"].str.replace(
+            r"\s*Vilayet.*|\s*Province.*", "", regex=True).str.strip()
+    if "Sanjak" in df.columns:
+        df["Sanjak"] = df["Sanjak"].str.replace(
+            r"\s*Sanjak.*", "", regex=True).str.strip()
+
+    # CSV
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(out_csv, index=False, encoding="utf-8-sig")
+
+    # Stata .dta with variable labels
+    out_dta.parent.mkdir(parents=True, exist_ok=True)
+    labels = {col: CENSUSNEW_VAR_LABELS[col]
+              for col in df.columns if col in CENSUSNEW_VAR_LABELS}
+    pyreadstat.write_dta(df, str(out_dta), column_labels=labels)
+
+    print(f"done ({len(df)} rows × {len(df.columns)} cols)")
 
 
 def dta_to_csv(src: Path, dst: Path) -> None:
@@ -305,140 +434,6 @@ def dta_to_csv(src: Path, dst: Path) -> None:
     print(f"done ({len(df)} rows × {len(df.columns)} cols)")
 
 
-# ---------------------------------------------------------------------------
-# Edirne supplement for CSV exports
-# ---------------------------------------------------------------------------
-
-# Maps supplement CSV column → census_1881.csv column (the messy ArcGIS-join names).
-# Single-letter columns are male counterparts truncated by the DBF 10-char limit.
-CENSUS_CSV_COL_MAP = {
-    "RTENO":                    "RTENO",
-    "kaza":                     "kaza",
-    "kazcode":                  "kazcode",
-    "vilayet":                  "census_gis_merged_csv_NameofVila",
-    "vilcode":                  "census_gis_merged_csv_vilcode",
-    "sanjak":                   "census_gis_merged_csv_NameofSanj",
-    "MuslimFemale":             "census_gis_merged_csv_Muslims_Fe",
-    "MuslimMale":               "census_gis_merged_csv_Muslims_Ma",
-    "GreekFemale":              "census_gis_merged_csv_Greeks_Fem",
-    "GreekMale":                "census_gis_merged_csv_Greeks_Mal",
-    "ArmenianFemale":           "census_gis_merged_csv_Armenians_",
-    "ArmenianMale":             "Q",
-    "BulgarianFemale":          "census_gis_merged_csv_Bulgarians",
-    "BulgarianMale":            "S",
-    "CatholicFemale":           "census_gis_merged_csv_Catholics_",
-    "CatholicMale":             "U",
-    "JewFemale":                "census_gis_merged_csv_Jews_Femal",
-    "JewMale":                  "census_gis_merged_csv_Jews_Male",
-    "ProtestantFemale":         "census_gis_merged_csv_Protestant",
-    "ProtestantMale":           "Y",
-    "LatinFemale":              "census_gis_merged_csv_Latins_Fem",
-    "LatinMale":                "census_gis_merged_csv_Latins_Mal",
-    "MonophysiteFemale":        "census_gis_merged_csv_Monophysit",
-    "MonophysiteMale":          "AC",
-    "NonMuslimGypsiesFemale":   "census_gis_merged_csv_NonMuslimG",
-    "NonMuslimGypsiesMale":     "AE",
-    "ForeignCitizenFemale":     "census_gis_merged_csv_ForeignCit",
-    "ForeignCitizenMale":       "AG",
-    "TotalMuslim":              "census_gis_merged_csv_Total_Musl",
-    "TotalChristian":           "census_gis_merged_csv_Total_Chri",
-    "TotalNonMuslim":           "census_gis_merged_csv_Total_NonM",
-    "TotalArmenian":            "census_gis_merged_csv_Total_Arme",
-    "ChristianMuslimRatio":     "census_gis_merged_csv_Christian_",
-    "ArmenianMuslimRatio":      "census_gis_merged_csv_Armenian_M",
-    "ArmenianShare":            "census_gis_merged_csv_ArmenianSh",
-    "ChristianShare":           "census_gis_merged_csv_ChristianS",
-    "TotalFemale":              "census_gis_merged_csv_Total_Fema",
-    "TotalMale":                "census_gis_merged_csv_Total_Male",
-    # GrandTotal computed from TotalMuslim + TotalNonMuslim (handled below)
-    "GrandTotal_computed":      "census_gis_merged_csv_GrandTotal",
-    "vilayet_clean":            "census_gis_merged_csv_Vilayet",
-    "sanjak_clean":             "census_gis_merged_csv_Sanjak",
-    "kaza_alt":                 "census_gis_merged_csv_kaza",
-}
-
-# Maps supplement CSV column → master_dataset.csv column (clean names).
-MASTER_CSV_COL_MAP = {
-    "kaza":                     "kaza",
-    "kazcode":                  "kazcode",
-    "sanjak":                   "NameofSanjak",
-    "vilcode":                  "vilcode",
-    "vilayet":                  "NameofVilayet",
-    "MuslimFemale":             "Muslims_Female",
-    "MuslimMale":               "Muslims_Male",
-    "GreekFemale":              "Greeks_Female",
-    "GreekMale":                "Greeks_Male",
-    "ArmenianFemale":           "Armenians_Female",
-    "ArmenianMale":             "Armenians_Male",
-    "BulgarianFemale":          "Bulgarians_Female",
-    "BulgarianMale":            "Bulgarians_Male",
-    "CatholicFemale":           "Catholics_Female",
-    "CatholicMale":             "Catholics_Male",
-    "JewFemale":                "Jews_Female",
-    "JewMale":                  "Jews_Male",
-    "ProtestantFemale":         "Protestants_Female",
-    "ProtestantMale":           "Protestants_Male",
-    "LatinFemale":              "Latins_Female",
-    "LatinMale":                "Latins_Male",
-    "MonophysiteFemale":        "Monophysites_Female",
-    "MonophysiteMale":          "Monophysites_Male",
-    "NonMuslimGypsiesFemale":   "NonMuslimGypsies_Female",
-    "NonMuslimGypsiesMale":     "NonMuslimGypsies_Male",
-    "ForeignCitizenFemale":     "ForeignCitizens_Female",
-    "ForeignCitizenMale":       "ForeignCitizens_Male",
-    "TotalMuslim":              "Total_Muslim",
-    "TotalChristian":           "Total_Christian",
-    "TotalNonMuslim":           "Total_NonMuslim",
-    "TotalArmenian":            "Total_Armenian",
-    "ChristianMuslimRatio":     "Christian_Muslim_Ratio",
-    "ArmenianMuslimRatio":      "Armenian_Muslim_Ratio",
-    "ArmenianShare":            "ArmenianShare",
-    "ChristianShare":           "ChristianShare",
-    "TotalFemale":              "Total_Female",
-    "TotalMale":                "Total_Male",
-    "GrandTotal_computed":      "GrandTotal",
-    "vilayet_clean":            "Vilayet",
-    "sanjak_clean":             "Sanjak",
-    "FID":                      "FID",
-}
-
-
-def supplement_edirne_csv(csv_path: Path, col_map: dict, supplement_csv: Path,
-                           id_col: str = "RTENO") -> None:
-    """Append the 5 Edirne Vilayet rows (absent from the Stata source) to a CSV export."""
-    if not supplement_csv.exists():
-        return
-    df = pd.read_csv(csv_path, encoding="utf-8-sig")
-    # Already has Edirne rows — skip (check by RTENO prefix or kaza name)
-    if id_col in df.columns:
-        already = df[id_col].astype(str).str.contains("Edirne|Kirkkilise|Dedeagac|Tekirdag|Gelibolu",
-                                                        case=False, na=False).any()
-        if already:
-            return
-
-    sup = pd.read_csv(supplement_csv, encoding="latin1")
-    sup = sup[sup["RTENO"].str.startswith("Edirne", na=False)].copy()
-    if sup.empty:
-        return
-
-    # Derived columns used in the mapping
-    sup["GrandTotal_computed"] = sup["TotalMuslim"] + sup["TotalNonMuslim"]
-    sup["vilayet_clean"] = sup["vilayet"].str.replace(r"\s*Vilayet.*", "", regex=True).str.strip()
-    sup["sanjak_clean"]  = sup["sanjak"].str.replace(r"\s*Sanjak.*",  "", regex=True).str.strip()
-    sup["kaza_alt"]      = sup["kaza"]
-
-    patch_rows = []
-    for _, row in sup.iterrows():
-        new_row = {col: None for col in df.columns}
-        for src_col, dst_col in col_map.items():
-            if dst_col in df.columns and src_col in row.index:
-                new_row[dst_col] = row[src_col]
-        patch_rows.append(new_row)
-
-    patch_df = pd.DataFrame(patch_rows, columns=df.columns)
-    out = pd.concat([df, patch_df], ignore_index=True)
-    out.to_csv(csv_path, index=False, encoding="utf-8-sig")
-    print(f"  (+{len(patch_rows)} Edirne rows appended)")
 
 
 # ---------------------------------------------------------------------------
@@ -447,7 +442,7 @@ def supplement_edirne_csv(csv_path: Path, col_map: dict, supplement_csv: Path,
 
 def write_layer_metadata(root: Path, shp_jobs, stata_jobs) -> None:
     """Write a machine-readable JSON index of all derived files."""
-    index = {"geojson": [], "csv": []}
+    index = {"geojson": [], "csv": [], "stata": []}
 
     for src_rel, stem, desc in shp_jobs:
         src = Path(src_rel)
@@ -464,6 +459,18 @@ def write_layer_metadata(root: Path, shp_jobs, stata_jobs) -> None:
             "source_stata": f"data/raw/stata/{src_name}",
             "description": desc,
         })
+
+    # CensusNew-derived files
+    index["csv"].append({
+        "file": "data/derived/csv/census_1881.csv",
+        "source": str(CENSUSNEW_REL),
+        "description": CENSUSNEW_DESC,
+    })
+    index["stata"].append({
+        "file": "data/derived/stata/census_1881.dta",
+        "source": str(CENSUSNEW_REL),
+        "description": CENSUSNEW_DESC,
+    })
 
     out = root / "data" / "derived" / "layer_index.json"
     out.write_text(json.dumps(index, indent=2, ensure_ascii=False))
@@ -502,8 +509,18 @@ def main():
             continue
         shp_to_geojson(src, dst, stem, census_path=census_path)
 
-    # --- Stata → CSV ---
-    supplement_csv_path = root / "AllKazas_OttomanCensus_April2020.csv"
+    # --- CensusNew → census_1881.csv + census_1881.dta ---
+    cn_path = root / CENSUSNEW_REL
+    out_dta_dir = root / "data" / "derived" / "stata"
+    print("\n[ CensusNew → census CSV + Stata ]\n")
+    if cn_path.exists():
+        censusnew_export(cn_path,
+                         out_csv / "census_1881.csv",
+                         out_dta_dir / "census_1881.dta")
+    else:
+        print(f"  SKIP CensusNew.xlsx (not found at {cn_path})")
+
+    # --- Stata → CSV (master_dataset, schools) ---
     print("\n[ Stata .dta → CSV ]\n")
     for src_name, dst_name, _ in STATA_JOBS:
         src = raw_dta / src_name
@@ -512,12 +529,6 @@ def main():
             print(f"  SKIP {src_name} (not found at {src})")
             continue
         dta_to_csv(src, dst)
-        # Supplement Edirne rows missing from the Stata source
-        if dst_name == "census_1881.csv":
-            supplement_edirne_csv(dst, CENSUS_CSV_COL_MAP, supplement_csv_path)
-        elif dst_name == "master_dataset.csv":
-            supplement_edirne_csv(dst, MASTER_CSV_COL_MAP, supplement_csv_path,
-                                  id_col="kaza")
 
     # --- Layer index ---
     print("\n[ Writing layer index ]\n")
