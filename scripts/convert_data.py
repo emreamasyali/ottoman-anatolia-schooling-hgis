@@ -180,6 +180,46 @@ def join_census(gdf: "gpd.GeoDataFrame", census_path: Path) -> "gpd.GeoDataFrame
     merged = gdf.merge(census_sub, on="RTENO", how="left")
     matched = merged["ChristianShare"].notna().sum()
     print(f"  Census join: {matched}/{len(merged)} kazas matched", end=" ", flush=True)
+
+    # Supplement with CSV for kazas absent from the Stata file (e.g. Edirne Vilayet)
+    unmatched_mask = merged["ChristianShare"].isna() & merged["RTENO"].notna()
+    if unmatched_mask.any():
+        csv_path = census_path.parent.parent.parent.parent / "AllKazas_OttomanCensus_April2020.csv"
+        if csv_path.exists():
+            csv = pd.read_csv(csv_path, encoding="latin1")
+            csv = csv[csv["RTENO"].notna()].copy()
+            csv["GrandTotal"] = csv["TotalMuslim"] + csv["TotalNonMuslim"]
+            csv["Vilayet"] = csv["vilayet"].str.replace(r"\s*Vilayet.*", "", regex=True).str.strip()
+            csv["Sanjak"]  = csv["sanjak"].str.replace(r"\s*Sanjak.*",  "", regex=True).str.strip()
+            csv_rename = {
+                "kaza":               "KazaName",
+                "kazcode":            "kazcode",
+                "ChristianShare":     "ChristianShare",
+                "ArmenianShare":      "ArmenianShare",
+                "TotalMuslim":        "Total_Muslim",
+                "TotalChristian":     "Total_Christian",
+                "TotalArmenian":      "Total_Armenian",
+                "MuslimFemale":       "Muslims_Female",
+                "MuslimMale":         "Muslims_Male",
+                "ArmenianFemale":     "Armenians_Total",
+                "GreekFemale":        "Greeks_Female",
+                "GreekMale":          "Greeks_Male",
+                "ChristianMuslimRatio": "Christian_Muslim_Ratio",
+                "ArmenianMuslimRatio":  "Armenian_Muslim_Ratio",
+            }
+            csv = csv.rename(columns=csv_rename)
+            csv_sub = csv[["RTENO"] + [c for c in keep if c in csv.columns and c != "RTENO"]].drop_duplicates("RTENO")
+            fill_cols = [c for c in keep if c in csv_sub.columns and c != "RTENO"]
+            # Build patch indexed like merged's unmatched rows, then update() in-place
+            unmatched_rtenos = merged.loc[unmatched_mask, "RTENO"].values
+            patch = pd.DataFrame({"RTENO": unmatched_rtenos}).merge(
+                csv_sub[["RTENO"] + fill_cols], on="RTENO", how="left"
+            )
+            patch.index = merged.index[unmatched_mask]
+            merged.update(patch[fill_cols])
+            supplemented = (merged["ChristianShare"].notna().sum() - matched)
+            print(f"(+{supplemented} from CSV)", end=" ", flush=True)
+
     return merged
 
 
